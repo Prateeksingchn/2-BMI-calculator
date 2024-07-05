@@ -4,31 +4,102 @@ document.addEventListener('DOMContentLoaded', () => {
     const results = document.querySelector('#results');
     const heightHelp = document.querySelector('#heightHelp');
     const weightHelp = document.querySelector('#weightHelp');
-    const calendarElement = document.querySelector('#calendar');
     const dateInput = document.querySelector('#date');
-    const chartCanvas = document.getElementById('myChart');
+    const trendElement = document.querySelector('#trend');
+    const bmiHistoryTableBody = document.querySelector('#bmiHistoryTableBody');
 
     let bmiData = JSON.parse(localStorage.getItem('bmiData')) || [];
     let chart;
 
-    const calendar = flatpickr(calendarElement, {
-        inline: true,
-        enableTime: false,
+    flatpickr(dateInput, {
         dateFormat: 'Y-m-d',
-        onChange: function(selectedDates, dateStr, instance) {
-            displayBMIForDate(dateStr);
-        }
+        defaultDate: 'today'
     });
 
-    flatpickr(dateInput, {
-        dateFormat: 'Y-m-d'
-    });
+    function initChart() {
+        const ctx = document.getElementById('bmiChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'BMI',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChart() {
+        const sortedData = bmiData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        chart.data.labels = sortedData.map(data => data.date);
+        chart.data.datasets[0].data = sortedData.map(data => parseFloat(data.bmi));
+        chart.update();
+    }
+
+    function updateBMIHistoryTable() {
+        bmiHistoryTableBody.innerHTML = '';
+        const sortedData = bmiData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        sortedData.forEach(entry => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="py-2 px-4">${entry.date}</td>
+                <td class="py-2 px-4">${entry.bmi}</td>
+                <td class="py-2 px-4 ${getBMICategoryColor(entry.category)}">${entry.category}</td>
+            `;
+            bmiHistoryTableBody.appendChild(row);
+        });
+    }
+
+    function getBMICategoryColor(category) {
+        switch (category) {
+            case 'Underweight': return 'text-blue-500';
+            case 'Normal': return 'text-green-500';
+            case 'Overweight': return 'text-yellow-500';
+            case 'Obese': return 'text-red-500';
+            default: return '';
+        }
+    }
+
+    function updateTrend() {
+        if (bmiData.length < 2) {
+            trendElement.textContent = 'Not enough data for trend';
+            return;
+        }
+        const sortedData = bmiData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const lastTwo = sortedData.slice(0, 2);
+        const diff = parseFloat(lastTwo[0].bmi) - parseFloat(lastTwo[1].bmi);
+        let trendText = '';
+        let trendColor = '';
+        if (diff > 0) {
+            trendText = 'Trending Up';
+            trendColor = 'text-red-500';
+        } else if (diff < 0) {
+            trendText = 'Trending Down';
+            trendColor = 'text-green-500';
+        } else {
+            trendText = 'Stable';
+            trendColor = 'text-gray-500';
+        }
+        trendElement.textContent = `Trend: ${trendText}`;
+        trendElement.className = `mt-4 text-center font-bold ${trendColor}`;
+    }
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
 
-        const height = parseInt(document.querySelector('#height').value);
-        const weight = parseInt(document.querySelector('#weight').value);
+        const height = parseFloat(document.querySelector('#height').value);
+        const weight = parseFloat(document.querySelector('#weight').value);
         const date = dateInput.value;
 
         heightHelp.textContent = '';
@@ -41,96 +112,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!height || height <= 0 || isNaN(height)) {
             heightHelp.textContent = 'Please enter a valid height.';
-        } else if (!weight || weight <= 0 || isNaN(weight)) {
-            weightHelp.textContent = 'Please enter a valid weight.';
-        } else {
-            const bmi = (weight / ((height * height) / 10000)).toFixed(2);
-
-            let bmiCategory = '';
-            results.className = 'mt-4 p-4 rounded-md';
-
-            if (bmi < 18.6) {
-                bmiCategory = 'Underweight';
-                results.classList.add('bg-orange-200', 'text-orange-700');
-            } else if (bmi >= 18.6 && bmi <= 24.9) {
-                bmiCategory = 'Normal';
-                results.classList.add('bg-green-200', 'text-green-700');
-            } else {
-                bmiCategory = 'Overweight';
-                results.classList.add('bg-yellow-200', 'text-yellow-700');
-            }
-
-            results.innerHTML = `<span>${bmi}</span> - ${bmiCategory}`;
-            results.style.display = 'block';
-
-            const entryIndex = bmiData.findIndex(data => data.date === date);
-
-            if (entryIndex >= 0) {
-                bmiData[entryIndex] = { date, height, weight, bmi, bmiCategory };
-            } else {
-                bmiData.push({ date, height, weight, bmi, bmiCategory });
-            }
-
-            localStorage.setItem('bmiData', JSON.stringify(bmiData));
-            calendar.redraw();
-
-            // Update chart data
-            updateChart();
+            return;
         }
+
+        if (!weight || weight <= 0 || isNaN(weight)) {
+            weightHelp.textContent = 'Please enter a valid weight.';
+            return;
+        }
+
+        const bmi = (weight / ((height / 100) * (height / 100))).toFixed(2);
+
+        let category = '';
+        results.className = 'mt-4 p-4 rounded-md';
+
+        if (bmi < 18.5) {
+            category = 'Underweight';
+            results.classList.add('bg-blue-100', 'text-blue-700');
+        } else if (bmi >= 18.5 && bmi < 25) {
+            category = 'Normal';
+            results.classList.add('bg-green-100', 'text-green-700');
+        } else if (bmi >= 25 && bmi < 30) {
+            category = 'Overweight';
+            results.classList.add('bg-yellow-100', 'text-yellow-700');
+        } else {
+            category = 'Obese';
+            results.classList.add('bg-red-100', 'text-red-700');
+        }
+
+        results.innerHTML = `<p class="font-bold">BMI: ${bmi}</p><p>Category: ${category}</p>`;
+        results.style.display = 'block';
+
+        const entryIndex = bmiData.findIndex(data => data.date === date);
+
+        if (entryIndex >= 0) {
+            bmiData[entryIndex] = { date, height, weight, bmi, category };
+        } else {
+            bmiData.push({ date, height, weight, bmi, category });
+        }
+
+        localStorage.setItem('bmiData', JSON.stringify(bmiData));
+        updateChart();
+        updateBMIHistoryTable();
+        updateTrend();
     });
 
+  
     clearButton.addEventListener('click', () => {
         form.reset();
         results.style.display = 'none';
-        results.className = 'mt-4 p-4 rounded-md';
+        results.className = 'mt-4 p-4 rounded-md hidden';
         heightHelp.textContent = '';
         weightHelp.textContent = '';
+        trendElement.textContent = '';
     });
 
-    function displayBMIForDate(date) {
-        const entry = bmiData.find(data => data.date === date);
-        if (entry) {
-            results.innerHTML = `<span>${entry.bmi}</span> - ${entry.bmiCategory}`;
-            results.style.display = 'block';
-        } else {
-            results.innerHTML = 'No data for this date.';
-            results.style.display = 'block';
-        }
-    }
-
-    // Initialize the chart
-    function initChart() {
-        chart = new Chart(chartCanvas, {
-            type: 'bar',
-            data: {
-                labels: bmiData.map(data => data.date),
-                datasets: [{
-                    label: 'BMI',
-                    data: bmiData.map(data => parseFloat(data.bmi)),
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true
-                        }
-                    }]
-                }
-            }
-        });
-    }
-
-    // Update the chart with new data
-    function updateChart() {
-        chart.data.labels = bmiData.map(data => data.date);
-        chart.data.datasets[0].data = bmiData.map(data => parseFloat(data.bmi));
-        chart.update();
-    }
-
-    // Initialize the chart
     initChart();
+    updateChart();
+    updateBMIHistoryTable();
+    updateTrend();
 });

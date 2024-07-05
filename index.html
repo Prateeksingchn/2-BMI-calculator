@@ -1,165 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BMI Calculator</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
-    />
-  </head>
-  <body class="bg-gray-100 font-sans">
-    <header class="bg-green-500 text-white py-4 ">
-      <div class="container mx-auto">
-        <h1 class="text-2xl font-bold px-4">BMI Calculator</h1>
-      </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improved BMI Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <header class="bg-blue-600 text-white py-4">
+        <div class="container mx-auto">
+            <h1 class="text-3xl font-bold px-4">BMI Calculator</h1>
+        </div>
     </header>
 
-    <main
-      class="container w-full mx-auto mt-4 px-20 p-6 bg-white rounded-lg shadow-lg grid grid-cols-1 md:grid-cols-2 justify-items-center">
-      <!-- Left section -->
-      <div class="p-6 w-4/5 rounded-lg shadow-lg">
-        <h2 class="text-xl font-bold">Calculate your BMI</h2>
-        <form id="bmi-form" class="flex flex-col">
-          <div class="mb-4">
-            <label for="date" class="block text-gray-700">Date:</label>
-            <input
-              type="text"
-              id="date"
-              class="mt-1 p-2 w-full border rounded-md"
-              placeholder="Select a date"
-            />
-          </div>
-          <div class="mb-4 flex items-center">
-            <label for="height" class="block text-gray-700 mr-2">
-              <svg
-                class="w-5 h-5 text-gray-500"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </label>
-            <div class="w-full">
-              <label for="height" class="block text-gray-700"
-                >Height (CM)</label
-              >
-              <input
-                type="text"
-                id="height"
-                class="mt-1 p-2 w-full border rounded-md"
-                aria-describedby="heightHelp"
-              />
-              <small id="heightHelp" class="text-red-500"></small>
+    <main class="container mx-auto mt-8 px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Left section - BMI Calculator Form -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">Calculate your BMI</h2>
+                <form id="bmi-form" class="space-y-4">
+                    <div>
+                        <label for="date" class="block text-gray-700">Date:</label>
+                        <input type="text" id="date" class="mt-1 p-2 w-full border rounded-md" placeholder="Select a date">
+                    </div>
+                    <div>
+                        <label for="height" class="block text-gray-700">Height (cm):</label>
+                        <input type="number" id="height" class="mt-1 p-2 w-full border rounded-md" placeholder="Enter height in cm">
+                        <small id="heightHelp" class="text-red-500"></small>
+                    </div>
+                    <div>
+                        <label for="weight" class="block text-gray-700">Weight (kg):</label>
+                        <input type="number" id="weight" class="mt-1 p-2 w-full border rounded-md" placeholder="Enter weight in kg">
+                        <small id="weightHelp" class="text-red-500"></small>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition-colors duration-300">Calculate</button>
+                        <button type="button" id="clear" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md transition-colors duration-300">Clear</button>
+                    </div>
+                </form>
+                <div id="results" class="mt-4 p-4 rounded-md hidden"></div>
+                <div id="trend" class="mt-4 text-center"></div>
             </div>
-          </div>
-          <div class="mb-4 flex items-center">
-            <label for="weight" class="block text-gray-700 mr-2">
-              <svg
-                class="w-5 h-5 text-gray-500"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </label>
-            <div class="w-full">
-              <label for="weight" class="block text-gray-700"
-                >Weight (KG)</label
-              >
-              <input
-                type="text"
-                id="weight"
-                class="mt-1 p-2 w-full border rounded-md"
-                aria-describedby="weightHelp"
-              />
-              <small id="weightHelp" class="text-red-500"></small>
-            </div>
-          </div>
-          <div class="mb-4 flex items-center">
-            <label class="block text-gray-700 mr-2">Gender:</label>
-            <div>
-              <input
-                type="radio"
-                id="male"
-                name="gender"
-                value="male"
-                class="mr-1"
-              />
-              <label for="male" class="text-gray-700">Male</label>
-            </div>
-            <div>
-              <input
-                type="radio"
-                id="female"
-                name="gender"
-                value="female"
-                class="mr-1"
-              />
-              <label for="female" class="text-gray-700">Female</label>
-            </div>
-          </div>
-          <button
-            type="submit"
-            class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md transition-colors duration-300"
-          >
-            Calculate
-          </button>
-          <button
-            type="button"
-            id="clear"
-            class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md mt-2 transition-colors duration-300"
-          >
-            Clear
-          </button>
-          <div
-            id="results"
-            class="mt-4 p-4 rounded-md bg-green-100 text-green-800 hidden"
-          ></div>
-          <div id="weight-guide" class="mt-4">
-            <h3 class="text-lg font-bold">BMI Weight Guide</h3>
-            <p>Underweight = Less than 18.6</p>
-            <p>Normal Range = 18.6 and 24.9</p>
-            <p>Overweight = Greater than 24.9</p>
-          </div>
-        </form>
-      </div>
 
-      <!-- Right section -->
-      <div class="w-4/5 p-6 rounded-lg shadow-lg">
-        <div id="calendar" class="w-full p-6 rounded-xl">
-          <h2 class="text-xl font-bold">BMI History</h2>
-          <p class="text-gray-700">Click on a date to see BMI</p>
-          <div id="calendar-container"></div>
+            <!-- Right section - BMI History and Chart -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">BMI History</h2>
+                <canvas id="bmiChart" class="mb-4"></canvas>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="py-2 px-4 text-left">Date</th>
+                                <th class="py-2 px-4 text-left">BMI</th>
+                                <th class="py-2 px-4 text-left">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bmiHistoryTableBody">
+                            <!-- BMI history rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <canvas id="myChart" class="mt-10 border rounded-lg"></canvas>
-      </div>
     </main>
 
-    <footer class="bg-gray-800 text-white py-4 mt-4">
-      <div class="container mx-auto text-center">
-        &copy; 2024 BMI Calculator
-      </div>
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto text-center">
+            &copy; 2024 Improved BMI Calculator
+        </div>
     </footer>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  </body>
+    <script src="script.js"></script>
+</body>
 </html>
